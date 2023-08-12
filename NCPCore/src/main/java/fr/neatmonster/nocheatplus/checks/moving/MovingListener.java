@@ -173,6 +173,14 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
 
     /** Location for temporary use with getLocation(useLoc). Always call setWorld(null) after use. Use LocUtil.clone before passing to other API. */
     final Location useLoc = new Location(null, 0, 0, 0); // TODO: Put to use...
+    final Location useBedLeaveLoc = new Location(null, 0, 0, 0);
+    final Location useChangeWorldLoc = new Location(null, 0, 0, 0);
+    final Location useDeathLoc = new Location(null, 0, 0, 0);
+    final Location useFallLoc = new Location(null, 0, 0, 0);
+    final Location useJoinLoc = new Location(null, 0, 0, 0);
+    final Location useLeaveLoc = new Location(null, 0, 0, 0);
+    final Location useToggleFlightLoc = new Location(null, 0, 0, 0);
+    final Location useTickLoc = new Location(null, 0, 0, 0);
 
     /** Auxiliary functionality. */
     private final AuxMoving aux = NCPAPIProvider.getNoCheatPlusAPI().getGenericInstance(AuxMoving.class);
@@ -298,7 +306,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
             // Check if the player has to be reset.
             // To "cancel" the event, we teleport the player.
             Location newTo = null;
-            final Location loc = player.getLocation(useLoc);
+            final Location loc = player.getLocation(useBedLeaveLoc);
             final PlayerMoveInfo moveInfo = aux.usePlayerMoveInfo();
             moveInfo.set(player, loc, null, cc.yOnGround);
             final boolean sfCheck = MovingUtil.shouldCheckSurvivalFly(player, moveInfo.from, moveInfo.to, data, cc, pData);
@@ -317,7 +325,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
                 noFall.checkDamage(player, y, data, pData);
             }
             // Cleanup
-            useLoc.setWorld(null);
+            useBedLeaveLoc.setWorld(null);
             // Teleport.
             data.prepareSetBack(newTo); // Should be enough. 
             player.teleport(newTo, BridgeMisc.TELEPORT_CAUSE_CORRECTION_OF_POSITION);
@@ -374,14 +382,14 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         if (!pData.isCheckActive(CheckType.MOVING, player)) return;
         final MovingConfig cc = pData.getGenericInstance(MovingConfig.class);
         data.clearMostMovingCheckData();
-        final Location loc = player.getLocation(useLoc);
+        final Location loc = player.getLocation(useChangeWorldLoc);
         data.setSetBack(loc);
         if (cc.loadChunksOnWorldChange) MovingUtil.ensureChunksLoaded(player, loc, "world change", data, cc, pData);
         aux.resetPositionsAndMediumProperties(player, loc, data, cc);
         data.resetTrace(player, loc, TickTask.getTick(), mcAccess.getHandle(), cc);
         // Just in case.
         if (cc.enforceLocation) playersEnforce.add(player.getName());
-        useLoc.setWorld(null);
+        useChangeWorldLoc.setWorld(null);
     }
 
 
@@ -1785,11 +1793,11 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final MovingData data = pData.getGenericInstance(MovingData.class);
         //final MovingConfig cc = pData.getGenericInstance(MovingConfig.class);
         data.clearMostMovingCheckData();
-        data.setSetBack(player.getLocation(useLoc)); // TODO: Monitor this change (!).
+        data.setSetBack(player.getLocation(useDeathLoc)); // TODO: Monitor this change (!).
         data.isUsingItem = false;
         // Log location.
-        if (pData.isDebugActive(checkType)) debug(player, "Death: " + player.getLocation(useLoc));
-        useLoc.setWorld(null);
+        if (pData.isDebugActive(checkType)) debug(player, "Death: " + player.getLocation(useDeathLoc));
+        useDeathLoc.setWorld(null);
     }
 
 
@@ -2103,7 +2111,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final PlayerMoveInfo moveInfo = aux.usePlayerMoveInfo();
         moveInfo.set(player, teleported != null ? teleported : fallbackTeleported, null, cc.yOnGround);
         if (cc.loadChunksOnTeleport) {
-            MovingUtil.ensureChunksLoaded(player, teleported, 
+            MovingUtil.ensureChunksLoaded(player, teleported != null ? teleported : fallbackTeleported, 
                     "teleport", data, cc, pData);
         }
         data.onSetBack(moveInfo.from);
@@ -2245,7 +2253,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final MovingConfig cc = pData.getGenericInstance(MovingConfig.class);
         final PlayerMoveInfo moveInfo = aux.usePlayerMoveInfo();
         final double yOnGround = Math.max(cc.noFallyOnGround, cc.yOnGround);
-        final Location loc = player.getLocation(useLoc);
+        final Location loc = player.getLocation(useFallLoc);
         moveInfo.set(player, loc, null, yOnGround);
         final PlayerLocation pLoc = moveInfo.from;
         pLoc.collectBlockFlags(yOnGround);
@@ -2253,7 +2261,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         if (event.isCancelled() || !MovingUtil.shouldCheckSurvivalFly(player, pLoc, moveInfo.to, data, cc, pData) 
             || !noFall.isEnabled(player, pData)) {
             data.clearNoFallData();
-            useLoc.setWorld(null);
+            useFallLoc.setWorld(null);
             aux.returnPlayerMoveInfo(moveInfo);
             return;
         }
@@ -2298,7 +2306,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
                     if (dataDamage <= 0.0) {
                         // Cancel the event.
                         event.setCancelled(true);
-                        useLoc.setWorld(null);
+                        useFallLoc.setWorld(null);
                         aux.returnPlayerMoveInfo(moveInfo);
                         return;
                     }
@@ -2357,7 +2365,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         }
         // Entity fall-distance should be reset elsewhere.
         // Cleanup.
-        useLoc.setWorld(null);
+        useFallLoc.setWorld(null);
     }
 
 
@@ -2426,10 +2434,10 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
 
         final IPlayerData pData = DataManager.getPlayerData(player);
         if (!pData.isCheckActive(CheckType.MOVING, player)) return;
-        dataOnJoin(player, player.getLocation(useLoc), false, pData.getGenericInstance(MovingData.class), 
+        dataOnJoin(player, player.getLocation(useJoinLoc), false, pData.getGenericInstance(MovingData.class), 
                   pData.getGenericInstance(MovingConfig.class), pData.isDebugActive(checkType));
         // Cleanup.
-        useLoc.setWorld(null);
+        useJoinLoc.setWorld(null);
     }
 
 
@@ -2533,7 +2541,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final IPlayerData pData = DataManager.getPlayerData(player);
         if (!pData.isCheckActive(CheckType.MOVING, player)) return;
         final MovingData data = pData.getGenericInstance(MovingData.class);
-        final Location loc = player.getLocation(useLoc);
+        final Location loc = player.getLocation(useLeaveLoc);
         // Debug logout.
         if (pData.isDebugActive(checkType)) StaticLog.logInfo("Player " + player.getName() + " leaves at location: " + loc.toString());
 
@@ -2587,7 +2595,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
                 }
             }
         }
-        useLoc.setWorld(null);
+        useLeaveLoc.setWorld(null);
         // Adjust data.
         survivalFly.setReallySneaking(player, false);
         noFall.onLeave(player, data, pData);
@@ -2625,17 +2633,17 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final MovingData data = pData.getGenericInstance(MovingData.class);
         final MovingConfig cc = pData.getGenericInstance(MovingConfig.class);
         final PlayerMoveInfo moveInfo = aux.usePlayerMoveInfo();
-        final Location loc = player.getLocation(useLoc);
+        final Location loc = player.getLocation(useToggleFlightLoc);
         moveInfo.set(player, loc, null, cc.yOnGround);
         // TODO: data.isVelocityJumpPhase() might be too harsh, but prevents too easy abuse.
         if (!MovingUtil.shouldCheckSurvivalFly(player, moveInfo.from, moveInfo.to, data, cc, pData) 
             || data.isVelocityJumpPhase() || BlockProperties.isOnGroundOrResetCond(player, loc, cc.yOnGround)) {
-            useLoc.setWorld(null);
+            useToggleFlightLoc.setWorld(null);
             aux.returnPlayerMoveInfo(moveInfo);
             return;
         }
         aux.returnPlayerMoveInfo(moveInfo);
-        useLoc.setWorld(null);
+        useToggleFlightLoc.setWorld(null);
         // TODO: Confine to minimum activation ticks.
         data.addVelocity(player, cc, 0.0, 0.3, 0.0);
     }
@@ -2653,7 +2661,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
             checkOnTickHover();
         }
         // Cleanup.
-        useLoc.setWorld(null);
+        useTickLoc.setWorld(null);
     }
 
 
@@ -2730,7 +2738,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
                 continue;
             }
             final MovingData data = DataManager.getGenericInstance(player, MovingData.class);
-            final Location newTo = enforceLocation(player, player.getLocation(useLoc), data);
+            final Location newTo = enforceLocation(player, player.getLocation(useTickLoc), data);
             if (newTo != null) {
                 data.prepareSetBack(newTo);
                 player.teleport(newTo, BridgeMisc.TELEPORT_CAUSE_CORRECTION_OF_POSITION);
@@ -2770,7 +2778,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
                                final PlayerMoveInfo info) {
 
         // Check if player is on ground.
-        final Location loc = player.getLocation(useLoc); // useLoc.setWorld(null) is done in onTick.
+        final Location loc = player.getLocation(useTickLoc); // useLoc.setWorld(null) is done in onTick.
         info.set(player, loc, null, cc.yOnGround);
         // (Could use useLoc of MoveInfo here. Note orderm though.)
         final boolean res;
