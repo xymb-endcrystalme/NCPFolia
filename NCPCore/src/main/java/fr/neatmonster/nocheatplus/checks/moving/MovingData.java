@@ -305,6 +305,7 @@ public class MovingData extends ACheckData implements IDataOnRemoveSubCheckData,
     // *----------Vehicles----------*
     /** Inconsistency-flag. Set on moving inside of vehicles, reset on exiting properly. Workaround for VehicleLeaveEvent missing. */
     public boolean wasInVehicle = false; 
+    public boolean vehicleLeave = false;
     /** TODO: */
     public EntityType lastVehicleType = null;
     /** Set to indicate that events happen during a vehicle set back. Allows skipping some resetting. */
