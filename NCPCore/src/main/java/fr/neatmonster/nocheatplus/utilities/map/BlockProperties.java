@@ -784,6 +784,10 @@ public class BlockProperties {
         return (BlockFlags.getBlockFlags(mat) & BlockFlags.F_WATER_PLANT) != 0;
     }
 
+    public static final boolean isDoor(final Material mat) {
+        return MaterialUtil.ALL_DOORS.contains(mat);
+    }
+
     /** Liquid height if no solid/full blocks are above. */
     protected static final double LIQUID_HEIGHT_LOWERED = 8/9f;
 
@@ -4648,6 +4652,53 @@ public class BlockProperties {
         // TODO: check f_itchy once exists.
         if (BlockProperties.isPassableWorkaround(access, blockX, blockY, blockZ, minX - blockX, minY - blockY, minZ - blockZ, node, maxX - minX, maxY - minY, maxZ - minZ, 
                                                  minX, minY, minZ, maxX, maxY, maxZ, 1.0)) {
+            return true;
+        }
+        // Does collide (most likely).
+        return false;
+    }
+
+    /**
+     * Check passability with an arbitrary bounding box vs. a block.
+     *
+     * @param access
+     *            the access
+     * @param blockX
+     *            the block x
+     * @param blockY
+     *            the block y
+     * @param blockZ
+     *            the block z
+     * @param minX
+     *            the min x
+     * @param minY
+     *            the min y
+     * @param minZ
+     *            the min z
+     * @param maxX
+     *            the max x
+     * @param maxY
+     *            the max y
+     * @param maxZ
+     *            the max z
+     * @return true, if is passable box
+     */
+    public static final boolean isPassableInteractBox(final BlockCache access, 
+                                              final int blockX, final int blockY, final int blockZ,
+                                              final double minX, final double minY, final double minZ,
+                                              final double maxX, final double maxY, final double maxZ) {
+        // TODO: This mostly is copy and paste from isPassableBox but without workaround.
+        final IBlockCacheNode node = access.getOrCreateBlockCacheNode(blockX, blockY, blockZ, false);
+        final Material id = node.getType();
+        if (BlockProperties.isPassable(id)) {
+            return true;
+        }
+        double[] bounds = access.getBounds(blockX, blockY, blockZ);
+        if (bounds == null) {
+            return true;
+        }
+        // (Coordinates are already passed in an ordered form.)
+        if (!collidesBlock(access, minX, minY, minZ, maxX, maxY, maxZ, blockX, blockY, blockZ, node, null, BlockFlags.getBlockFlags(id) | BlockFlags.F_COLLIDE_EDGES)) {
             return true;
         }
         // Does collide (most likely).

@@ -15,9 +15,12 @@
 package fr.neatmonster.nocheatplus.checks.blockinteract;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -31,10 +34,14 @@ import fr.neatmonster.nocheatplus.checks.net.FlyingQueueHandle;
 import fr.neatmonster.nocheatplus.checks.net.FlyingQueueLookBlockChecker;
 import fr.neatmonster.nocheatplus.players.IPlayerData;
 import fr.neatmonster.nocheatplus.utilities.StringUtil;
-import fr.neatmonster.nocheatplus.utilities.collision.InteractRayTracing;
-import fr.neatmonster.nocheatplus.utilities.location.TrigUtil;
+import fr.neatmonster.nocheatplus.utilities.collision.Axis;
+import fr.neatmonster.nocheatplus.utilities.collision.InteractAxisTracing;
+import fr.neatmonster.nocheatplus.utilities.ds.map.CoordHash;
 import fr.neatmonster.nocheatplus.utilities.map.BlockCache;
+import fr.neatmonster.nocheatplus.utilities.map.BlockFlags;
+import fr.neatmonster.nocheatplus.utilities.map.BlockProperties;
 import fr.neatmonster.nocheatplus.utilities.map.WrapBlockCache;
+import fr.neatmonster.nocheatplus.utilities.location.TrigUtil;
 
 public class Visible extends Check {
 
@@ -61,10 +68,7 @@ public class Visible extends Check {
                 }
                 return false;
             }
-            else {
-                return true;
-            }
-
+            return true;
         }
 
         public boolean checkFlyingQueue(double x, double y, double z, float oldYaw, float oldPitch, int blockX,
@@ -89,15 +93,11 @@ public class Visible extends Check {
             this.debug = false;
             this.tags = null;
         }
-
     }
 
     private final WrapBlockCache wrapBlockCache;
 
-    /**
-     * Strict set to false, due to false positives.
-     */
-    private final InteractRayTracing rayTracing = new InteractRayTracing(false);
+    private final InteractAxisTracing rayTracing = new InteractAxisTracing();
 
     private final RayChecker checker = new RayChecker();
 
@@ -114,8 +114,8 @@ public class Visible extends Check {
 
     public boolean check(final Player player, final Location loc, final double eyeHeight, final Block block, 
             final BlockFace face, final Action action, final FlyingQueueHandle flyingHandle, 
-            final BlockInteractData data, final BlockInteractConfig cc,
-            final IPlayerData pData) {
+            final BlockInteractData data, final BlockInteractConfig cc, final IPlayerData pData) {
+
         // TODO: This check might make parts of interact/blockbreak/... + direction (+?) obsolete.
         // TODO: Might confine what to check for (left/right-click, target blocks depending on item in hand, container blocks).
         boolean collides;
@@ -125,7 +125,6 @@ public class Visible extends Check {
         final double eyeX = loc.getX();
         final double eyeY = loc.getY() + eyeHeight;
         final double eyeZ = loc.getZ();
-
         final boolean debug = pData.isDebugActive(type);
 
         tags.clear();
@@ -140,12 +139,49 @@ public class Visible extends Check {
             final BlockCache blockCache = this.wrapBlockCache.getBlockCache();
             blockCache.setAccess(loc.getWorld());
             rayTracing.setBlockCache(blockCache);
-            collides = !checker.checkFlyingQueue(eyeX, eyeY, eyeZ, loc.getYaw(), loc.getPitch(), 
-                    blockX, blockY, blockZ, flyingHandle, face, tags, debug, player);
+            //collides = !checker.checkFlyingQueue(eyeX, eyeY, eyeZ, loc.getYaw(), loc.getPitch(), 
+            //        blockX, blockY, blockZ, flyingHandle, face, tags, debug, player);
+            rayTracing.set(blockX, blockY, blockZ, eyeX, eyeY, eyeZ);
+            rayTracing.loop();
+            if (rayTracing.collides()) {
+                collides = true;
+                BlockCoord bc = new BlockCoord(blockX, blockY, blockZ);
+                Vector direction = new Vector(eyeX - blockX, eyeY - blockY, eyeZ - blockZ).normalize();
+                boolean canContinue;
+                Set<BlockCoord> visited = new HashSet<BlockCoord>();
+                do {
+                    canContinue = false;
+                for (BlockCoord neighbor : getNeighborsInDirection(bc, direction, eyeX, eyeY, eyeZ)) {
+                    if (canPassThrough(blockCache, bc, neighbor.getX(), neighbor.getY(), neighbor.getZ(), direction, eyeX, eyeY, eyeZ, eyeHeight) && correctDir(neighbor.getY(), blockY, Location.locToBlock(eyeY)) && !visited.contains(neighbor)) {
+                        visited.add(neighbor);
+                        rayTracing.set(neighbor.getX(), neighbor.getY(), neighbor.getZ(), eyeX, eyeY, eyeZ);
+                        rayTracing.loop();
+                        canContinue = true;
+                        collides = rayTracing.collides();
+                        //if (!collides) break;
+                        //bc = new BlockCoord(rayTracing.getBlockX(), rayTracing.getBlockY(), rayTracing.getBlockZ());
+                        //direction = new Vector(eyeX - rayTracing.getBlockX(), eyeY - rayTracing.getBlockY(), eyeZ - rayTracing.getBlockZ()).normalize();
+                        bc = new BlockCoord(neighbor.getX(), neighbor.getY(), neighbor.getZ());
+                        direction = new Vector(eyeX - neighbor.getX(), eyeY - neighbor.getY(), eyeZ - neighbor.getZ()).normalize();
+                        break;
+                    }
+                }
+                } while (collides && canContinue);
+                if (collides) tags.add("raytracing");
+            }
+            else if (rayTracing.getStepsDone() > rayTracing.getMaxSteps()) {
+                tags.add("raytracing_maxsteps");
+                collides = true;
+            }
+            else {
+                collides = false;
+            }
+            
             checker.cleanup();
             useLoc.setWorld(null);
-            // Cleanup.
+            //Cleanup.
             rayTracing.cleanup();
+            //rayTracing.setIgnoreInitiallyColliding(false);
             blockCache.cleanup();
         }
 
@@ -169,11 +205,126 @@ public class Visible extends Check {
                 debug(player, "pitch=" + loc.getPitch() + ",yaw=" + loc.getYaw() + " tags=" + StringUtil.join(tags, "+"));
             }
         }
-
         return cancel;
     }
+    
+    private boolean correctDir(int neighbor, int block, int eyeBlock) {
+        int d = eyeBlock - block;
+        if (d > 0) {
+            if (neighbor > eyeBlock) return false;
+        } else if (d < 0) {
+            if (neighbor < eyeBlock) return false;
+        } else {
+            if (neighbor < eyeBlock || neighbor > eyeBlock) return false;
+        }
+        return true;
+    }
 
-    private boolean checkRayTracing(final double eyeX, final double eyeY, final double eyeZ, final double dirX, final double dirY, final double dirZ, final int blockX, final int blockY, final int blockZ, final BlockFace face, final List<String> tags, final boolean debug) {
+    private boolean canPassThrough(BlockCache blockCache, BlockCoord lastBlock, int x, int y, int z, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight) {
+        double[] nextBounds = blockCache.getBounds(x, y, z);
+        final Material mat = blockCache.getType(x, y, z);
+        final long flags = BlockFlags.getBlockFlags(mat);
+        //double[] lastBounds = blockCache.getBounds(lastBlock.getX(), lastBlock.getY(), lastBlock.getZ());
+        if (nextBounds == null || canPassThroughWorkAround(blockCache, x, y, z, direction, eyeX, eyeY, eyeZ, eyeHeight)) return true;
+        //if (lastBounds == null) return true;
+        int dy = y - lastBlock.getY();
+        int dx = x - lastBlock.getX();
+        int dz = z - lastBlock.getZ();
+        double stepX = dx * 0.99;
+        double stepY = dy * 0.99;
+        double stepZ = dz * 0.99;
+        //rayTracing.setAxisOrder(Axis.AXIS_ORDER_XZY);
+        rayTracing.set(lastBlock.getX(), lastBlock.getY(), lastBlock.getZ(), x + stepX, y + stepY, z + stepZ);
+        rayTracing.setIgnoreInitiallyColliding(true);
+        rayTracing.loop();
+        rayTracing.setIgnoreInitiallyColliding(false);
+        if (!rayTracing.collides()) return true;
+        // Too headache to think out a perfect algorithm
+        boolean wallConnector = (flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0;
+        boolean door = BlockProperties.isDoor(mat);
+        if ((flags & BlockFlags.F_STAIRS) != 0) {
+            if (dy == 0) {
+                int eyeBlockY = Location.locToBlock(eyeY);
+                if (eyeBlockY > y && nextBounds[4] == 1.0) return false;
+                if (eyeBlockY < y && nextBounds[1] == 0.0) return false;
+            }
+            if (dx != 0) {
+                // first bound is always a slab
+                for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
+                    if (nextBounds[i*6-4] == 0.0 && nextBounds[i*6-1] == 1.0 && (dx < 0 ? nextBounds[i*6-3] == 1.0 : nextBounds[i*6-6] == 0.0)) return false;
+                }
+            }
+            if (dz != 0) {
+                // first bound is always a slab
+                for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
+                    if (nextBounds[i*6-6] == 0.0 && nextBounds[i*6-3] == 1.0 && (dz < 0 ? nextBounds[i*6-1] == 1.0 : nextBounds[i*6-4] == 0.0)) return false;
+                }
+            }
+        }
+        if (dy != 0) {
+            if (nextBounds[0] == 0.0 && nextBounds[3] == 1.0 && nextBounds[2] == 0.0 && nextBounds[5] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.Y_AXIS : dy > 0 ? nextBounds[1] != 0.0 : nextBounds[4] != 1.0;
+            return true;
+        }
+        if (dx != 0) {
+            if (nextBounds[1] == 0.0 && nextBounds[4] == 1.0 && nextBounds[2] == 0.0 && nextBounds[5] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.X_AXIS : dx > 0 ? nextBounds[0] != 0.0 : nextBounds[3] != 1.0;
+            return true;
+        }
+        if (dz != 0) {
+            if (nextBounds[0] == 0.0 && nextBounds[3] == 1.0 && nextBounds[1] == 0.0 && nextBounds[4] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.Z_AXIS : dz > 0 ? nextBounds[2] != 0.0 : nextBounds[5] != 1.0;
+            return true;
+        }
+        return false;
+    }
+
+    private boolean canPassThroughWorkAround(BlockCache blockCache, int blockX, int blockY, int blockZ, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight) {
+        final Material mat = blockCache.getType(blockX, blockY, blockZ);
+        final long flags = BlockFlags.getBlockFlags(mat);
+        if ((flags & BlockFlags.F_SOLID) == 0) {
+            // Ignore non solid blocks anyway.
+            return true;
+        }
+        if ((flags & (BlockFlags.F_LIQUID | BlockFlags.F_IGN_PASSABLE)) != 0) {
+            return true;
+        }
+
+        if ((flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0) {
+            int entityBlockY = Location.locToBlock(eyeY - eyeHeight);
+            return direction.getY() > 0.76 && entityBlockY > blockY || direction.getY() < -0.76 && entityBlockY < blockY;
+        }
+        return false;
+    }
+
+    private List<BlockCoord> getNeighborsInDirection(BlockCoord currentBlock, Vector direction, double eyeX, double eyeY, double eyeZ) {
+        List<BlockCoord> neighbors = new ArrayList<>();
+        int stepY = direction.getY() > 0 ? 1 : (direction.getY() < 0 ? -1 : 0);
+        int stepX = direction.getX() > 0 ? 1 : (direction.getX() < 0 ? -1 : 0);
+        int stepZ = direction.getZ() > 0 ? 1 : (direction.getZ() < 0 ? -1 : 0);
+        
+        final double dYM = TrigUtil.manhattan(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ(), eyeX, eyeY, eyeZ);
+        final double dZM = TrigUtil.manhattan(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ, eyeX, eyeY, eyeZ);
+        final double dXM = TrigUtil.manhattan(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ(), eyeX, eyeY, eyeZ);
+        
+        if (dYM <= dXM && dYM <= dZM) {
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            return neighbors;
+        }
+
+        if (dXM < dZM) {
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+        } else {
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+        }
+        return neighbors;
+    }
+
+    private boolean checkRayTracing(final double eyeX, final double eyeY, final double eyeZ, final double dirX, final double dirY, final double dirZ, final int blockX, final int blockY, 
+                                    final int blockZ, final BlockFace face, final List<String> tags, final boolean debug) {
         // Block of eyes.
         final int eyeBlockX = Location.locToBlock(eyeX);
         final int eyeBlockY = Location.locToBlock(eyeY);
@@ -214,8 +365,8 @@ public class Visible extends Check {
 
         // Check if the the block is hit by the direction at all (timing interval).
         if (tMinX > tMaxY && tMinX > tMaxZ || 
-                tMinY > tMaxX && tMinY > tMaxZ || 
-                tMinZ > tMaxX && tMaxZ > tMaxY) {
+            tMinY > tMaxX && tMinY > tMaxZ || 
+            tMinZ > tMaxX && tMaxZ > tMaxY) {
             // TODO: Option to tolerate a minimal difference in t and use a corrected position then.
             tags.add("time_miss");
             //            Bukkit.getServer().broadcastMessage("visible: " + tMinX + "," + tMaxX + " | " + tMinY + "," + tMaxY + " | " + tMinZ + "," + tMaxZ);
@@ -248,7 +399,7 @@ public class Visible extends Check {
          */
 
         // Perform ray-tracing.
-        rayTracing.set(eyeX, eyeY, eyeZ, collideX, collideY, collideZ, blockX, blockY, blockZ);
+        //rayTracing.set(eyeX, eyeY, eyeZ, collideX, collideY, collideZ, blockX, blockY, blockZ);
         rayTracing.loop();
 
         final boolean collides;
@@ -287,9 +438,7 @@ public class Visible extends Check {
         if (Location.locToBlock(collideC) == ref) {
             return collideC;
         }
-        else {
-            return ref;
-        }
+        return ref;
     }
 
     /**
@@ -350,5 +499,39 @@ public class Visible extends Check {
             return Math.round(coord);
         }
     }
+    
+    private class BlockCoord {
+        private final int x;
+        private final int y;
+        private final int z;
+        
+        public BlockCoord(int x, int y, int z) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        
+        public int getX() {
+            return x;
+        }
+        public int getY() {
+            return y;
+        }
+        public int getZ() {
+            return z;
+        }
 
+        @Override
+        public int hashCode() {
+            return CoordHash.hashCode3DPrimes(x, y, z);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            BlockCoord bc = (BlockCoord)obj;
+            return bc.getX() == x && bc.getY() == y && bc.getZ() == z;
+        }
+    }
 }
