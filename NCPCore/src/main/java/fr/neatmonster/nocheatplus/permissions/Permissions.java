@@ -125,12 +125,14 @@ public class Permissions {
 
     public static final RegisteredPermission  CHAT                         = add(CHECKS + ".chat");
     public static final RegisteredPermission  CHAT_CAPTCHA                 = add(CHAT + ".captcha");
+    public static final RegisteredPermission  CHAT_COLOR                   = add(CHAT + ".color");
     public static final RegisteredPermission  CHAT_COMMANDS                = add(CHAT + ".commands");
     public static final RegisteredPermission  CHAT_LOGINS                  = add(CHAT + ".logins");
     public static final RegisteredPermission  CHAT_RELOG                   = add(CHAT + ".relog");
     public static final RegisteredPermission  CHAT_TEXT                    = add(CHAT + ".text");
 
     public static final RegisteredPermission  COMBINED                     = add(CHECKS + ".combined");
+    public static final RegisteredPermission  COMBINED_BEDLEAVE            = add(COMBINED + ".bedleave");
     public static final RegisteredPermission  COMBINED_IMPROBABLE          = add(COMBINED + ".improbable");
     public static final RegisteredPermission  COMBINED_MUNCHHAUSEN         = add(COMBINED + ".munchhausen");
 
@@ -147,6 +149,7 @@ public class Permissions {
     public static final RegisteredPermission  FIGHT_SPEED                  = add(FIGHT + ".speed");
 
     public static final RegisteredPermission  INVENTORY                    = add(CHECKS + ".inventory");
+    public static final RegisteredPermission  INVENTORY_DROP               = add(INVENTORY + ".drop");
     public static final RegisteredPermission  INVENTORY_FASTCLICK          = add(INVENTORY + ".fastclick");
     public static final RegisteredPermission  INVENTORY_FASTCONSUME        = add(INVENTORY + ".fastconsume");
     public static final RegisteredPermission  INVENTORY_GUTENBERG          = add(INVENTORY + ".gutenberg");
@@ -163,7 +166,7 @@ public class Permissions {
     public static final RegisteredPermission  NET_KEEPALIVEFREQUENCY       = add(NET + ".keepalivefrequency");
     public static final RegisteredPermission  NET_MOVING                   = add(NET + ".moving");
     public static final RegisteredPermission  NET_PACKETFREQUENCY          = add(NET + ".packetfrequency");
-	public static final RegisteredPermission  NET_WRONGTURN                = add(NET + ".wrongturn");
+    public static final RegisteredPermission  NET_WRONGTURN                = add(NET + ".wrongturn");
 
     public static final RegisteredPermission  MOVING                       = add(CHECKS + ".moving");
     public static final RegisteredPermission  MOVING_CREATIVEFLY           = add(MOVING + ".creativefly");
@@ -175,7 +178,7 @@ public class Permissions {
     public static final RegisteredPermission  MOVING_SURVIVALFLY_SNEAKING  = add(MOVING_SURVIVALFLY + ".sneaking");
     public static final RegisteredPermission  MOVING_SURVIVALFLY_SPEEDING  = add(MOVING_SURVIVALFLY + ".speeding");
     public static final RegisteredPermission  MOVING_SURVIVALFLY_SPRINTING = add(MOVING_SURVIVALFLY + ".sprinting");
-	public static final RegisteredPermission  MOVING_SURVIVALFLY_WATERWALK = add(MOVING_SURVIVALFLY + ".waterwalk");
+    public static final RegisteredPermission  MOVING_SURVIVALFLY_WATERWALK = add(MOVING_SURVIVALFLY + ".waterwalk");
     public static final RegisteredPermission  MOVING_SURVIVALFLY_STEP      = add(MOVING_SURVIVALFLY + ".step");
     public static final RegisteredPermission  MOVING_VEHICLE               = add(MOVING + ".vehicle");
     public static final RegisteredPermission  MOVING_VEHICLE_MOREPACKETS   = add(MOVING_VEHICLE + ".morepackets");
