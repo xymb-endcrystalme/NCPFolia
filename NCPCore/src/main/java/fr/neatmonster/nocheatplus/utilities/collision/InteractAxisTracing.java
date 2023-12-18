@@ -68,7 +68,7 @@ public class InteractAxisTracing extends AxisTracing {
             final double minX, final double minY, final double minZ, 
             final double maxX, final double maxY, final double maxZ, 
             final Axis axis, final int increment) {
-        if (BlockProperties.isPassableInteractBox(blockCache, blockX, blockY, blockZ, minX, minY, minZ, maxX, maxY, maxZ)) {
+        if (BlockProperties.isPassableBox(blockCache, blockX, blockY, blockZ, minX, minY, minZ, maxX, maxY, maxZ)) {
             return true;
         }
         // No condition for passing through found.

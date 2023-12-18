@@ -89,6 +89,8 @@ public class FightConfig extends ACheckConfig {
     public final float      speedImprobableWeight;
     public final ActionList speedActions;
 
+    public final ActionList visibleActions;
+
     // Special flags:
     public final boolean    cancelDead;
     public final boolean    knockBackVelocityPvP;
@@ -174,6 +176,8 @@ public class FightConfig extends ACheckConfig {
         speedImprobableFeedOnly = config.getBoolean(ConfPaths.FIGHT_SPEED_IMPROBABLE_FEEDONLY);
         speedImprobableWeight = (float) config.getDouble(ConfPaths.FIGHT_SPEED_IMPROBABLE_WEIGHT);
         speedActions = config.getOptimizedActionList(ConfPaths.FIGHT_SPEED_ACTIONS, Permissions.FIGHT_SPEED);
+
+        visibleActions = config.getOptimizedActionList(ConfPaths.FIGHT_VISIBLE_ACTIONS, Permissions.FIGHT_VISIBLE);
 
         cancelDead = config.getBoolean(ConfPaths.FIGHT_CANCELDEAD);
 		loopMaxLatencyTicks = config.getInt(ConfPaths.FIGHT_MAXLOOPLETENCYTICKS, 1, 15, 8);

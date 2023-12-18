@@ -14,9 +14,11 @@
  */
 package fr.neatmonster.nocheatplus.utilities.collision;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -24,7 +26,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import fr.neatmonster.nocheatplus.checks.moving.util.MovingUtil;
+import fr.neatmonster.nocheatplus.utilities.ds.map.BlockCoord;
 import fr.neatmonster.nocheatplus.utilities.location.TrigUtil;
+import fr.neatmonster.nocheatplus.utilities.map.BlockCache;
+import fr.neatmonster.nocheatplus.utilities.map.BlockFlags;
+import fr.neatmonster.nocheatplus.utilities.map.BlockProperties;
 
 /**
  * Collision related static utility.
@@ -111,7 +117,7 @@ public class CollisionUtil {
      */
     public static double directionCheck(final Location sourceFoot, final double eyeHeight, final Vector dir, final double targetX, final double targetY, final double targetZ, final double targetWidth, final double targetHeight, final double precision)
     {
-        return directionCheck(sourceFoot.getX(), sourceFoot.getY() + eyeHeight, sourceFoot.getZ(), dir.getX(), dir.getY(), dir.getZ(), targetX, targetY, targetZ, targetWidth, targetHeight, precision);					
+        return directionCheck(sourceFoot.getX(), sourceFoot.getY() + eyeHeight, sourceFoot.getZ(), dir.getX(), dir.getY(), dir.getZ(), targetX, targetY, targetZ, targetWidth, targetHeight, precision);
     }
 
     /**
@@ -146,8 +152,8 @@ public class CollisionUtil {
     public static double directionCheck(final double sourceX, final double sourceY, final double sourceZ, final double dirX, final double dirY, final double dirZ, final double targetX, final double targetY, final double targetZ, final double targetWidth, final double targetHeight, final double precision)
     {
 
-        //		// TODO: Here we have 0.x vs. 2.x, sometimes !
-        //		NCPAPIProvider.getNoCheatPlusAPI().getLogManager().debug(Streams.TRACE_FILE, "COMBINED: " + combinedDirectionCheck(sourceX, sourceY, sourceZ, dirX, dirY, dirZ, targetX, targetY, targetZ, targetWidth, targetHeight, precision, 60));
+        //        // TODO: Here we have 0.x vs. 2.x, sometimes !
+        //        NCPAPIProvider.getNoCheatPlusAPI().getLogManager().debug(Streams.TRACE_FILE, "COMBINED: " + combinedDirectionCheck(sourceX, sourceY, sourceZ, dirX, dirY, dirZ, targetX, targetY, targetZ, targetWidth, targetHeight, precision, 60));
 
         // TODO: rework / standardize.
 
@@ -202,7 +208,7 @@ public class CollisionUtil {
      */
     public static double combinedDirectionCheck(final Location sourceFoot, final double eyeHeight, final Vector dir, final double targetX, final double targetY, final double targetZ, final double targetWidth, final double targetHeight, final double precision, final double anglePrecision, boolean isPlayer)
     {
-        return combinedDirectionCheck(sourceFoot.getX(), sourceFoot.getY() + eyeHeight, sourceFoot.getZ(), dir.getX(), dir.getY(), dir.getZ(), targetX, targetY, targetZ, targetWidth, targetHeight, precision, anglePrecision, isPlayer);					
+        return combinedDirectionCheck(sourceFoot.getX(), sourceFoot.getY() + eyeHeight, sourceFoot.getZ(), dir.getX(), dir.getY(), dir.getZ(), targetX, targetY, targetZ, targetWidth, targetHeight, precision, anglePrecision, isPlayer);
     }
 
     /**
@@ -272,7 +278,7 @@ public class CollisionUtil {
         final double minDist = isPlayer ? Math.max(targetHeight, targetWidth) / 2.0 : Math.max(targetHeight, targetWidth);
 
         if (targetDist > minDist && TrigUtil.angle(sourceX, sourceY, sourceZ, dirX, dirY, dirZ, targetX, targetY, targetZ) * TrigUtil.fRadToGrad > anglePrecision){
-        	return targetDist - minDist;
+            return targetDist - minDist;
         }
 
         final double xPrediction = targetDist * dirX / dirLength;
@@ -479,8 +485,8 @@ public class CollisionUtil {
     public static double axisDistance(final double pos, final double minPos, final double maxPos) {
         return pos < minPos ? Math.abs(pos - minPos) : (pos > maxPos ? Math.abs(pos - maxPos) : 0.0);
     }
-	
-	public static boolean isCollidingWithEntities(final Player p, final boolean onlylivingenitites) {
+
+    public static boolean isCollidingWithEntities(final Player p, final boolean onlylivingenitites) {
         if (onlylivingenitites) {
             List<Entity> entities = p.getNearbyEntities(0.15, 0.2, 0.15);
             entities.removeIf(e -> !(e instanceof LivingEntity));
@@ -489,4 +495,134 @@ public class CollisionUtil {
         return !p.getNearbyEntities(0.15, 0.15, 0.15).isEmpty();
     }
 
+    public static boolean correctDir(int neighbor, int block, int eyeBlock) {
+        int d = eyeBlock - block;
+        if (d > 0) {
+            if (neighbor > eyeBlock) return false;
+        } else if (d < 0) {
+            if (neighbor < eyeBlock) return false;
+        } else {
+            if (neighbor < eyeBlock || neighbor > eyeBlock) return false;
+        }
+        return true;
+    }
+
+    public static boolean correctDir(int neighbor, int block, int eyeBlock, int min, int max) {
+        if (neighbor >= min && neighbor <= max) return true;
+        int d = eyeBlock - block;
+        if (d > 0) {
+            if (neighbor > eyeBlock) return false;
+        } else if (d < 0) {
+            if (neighbor < eyeBlock) return false;
+        } else {
+            if (neighbor < eyeBlock || neighbor > eyeBlock) return false;
+        }
+        return true;
+    }
+
+    public static boolean canPassThrough(InteractAxisTracing rayTracing, BlockCache blockCache, BlockCoord lastBlock, int x, int y, int z, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight, BlockCoord sCollidingBox, BlockCoord eCollidingBox) {
+        double[] nextBounds = blockCache.getBounds(x, y, z);
+        final Material mat = blockCache.getType(x, y, z);
+        final long flags = BlockFlags.getBlockFlags(mat);
+        //double[] lastBounds = blockCache.getBounds(lastBlock.getX(), lastBlock.getY(), lastBlock.getZ());
+        if (sCollidingBox != null && eCollidingBox != null
+                && isInsideAABBIncludeEdges(x,y,z, sCollidingBox.getX(), sCollidingBox.getY(), sCollidingBox.getZ(), eCollidingBox.getX(), eCollidingBox.getY(), eCollidingBox.getZ())) return true;
+        if (nextBounds == null || canPassThroughWorkAround(blockCache, x, y, z, direction, eyeX, eyeY, eyeZ, eyeHeight)) return true;
+        //if (lastBounds == null) return true;
+        int dy = y - lastBlock.getY();
+        int dx = x - lastBlock.getX();
+        int dz = z - lastBlock.getZ();
+        double stepX = dx * 0.99;
+        double stepY = dy * 0.99;
+        double stepZ = dz * 0.99;
+        //rayTracing.setAxisOrder(Axis.AXIS_ORDER_XZY);
+        rayTracing.set(lastBlock.getX(), lastBlock.getY(), lastBlock.getZ(), x + stepX, y + stepY, z + stepZ);
+        rayTracing.setIgnoreInitiallyColliding(true);
+        rayTracing.loop();
+        rayTracing.setIgnoreInitiallyColliding(false);
+        if (!rayTracing.collides()) return true;
+        // Too headache to think out a perfect algorithm
+        boolean wallConnector = (flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0;
+        boolean door = BlockProperties.isDoor(mat);
+        if ((flags & BlockFlags.F_STAIRS) != 0) {
+            if (dy == 0) {
+                int eyeBlockY = Location.locToBlock(eyeY);
+                if (eyeBlockY > y && nextBounds[4] == 1.0) return false;
+                if (eyeBlockY < y && nextBounds[1] == 0.0) return false;
+            }
+            if (dx != 0) {
+                // first bound is always a slab
+                for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
+                    if (nextBounds[i*6-4] == 0.0 && nextBounds[i*6-1] == 1.0 && (dx < 0 ? nextBounds[i*6-3] == 1.0 : nextBounds[i*6-6] == 0.0)) return false;
+                }
+            }
+            if (dz != 0) {
+                // first bound is always a slab
+                for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
+                    if (nextBounds[i*6-6] == 0.0 && nextBounds[i*6-3] == 1.0 && (dz < 0 ? nextBounds[i*6-1] == 1.0 : nextBounds[i*6-4] == 0.0)) return false;
+                }
+            }
+        }
+        if (dy != 0) {
+            if (nextBounds[0] == 0.0 && nextBounds[3] == 1.0 && nextBounds[2] == 0.0 && nextBounds[5] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.Y_AXIS : dy > 0 ? nextBounds[1] != 0.0 : nextBounds[4] != 1.0;
+            return true;
+        }
+        if (dx != 0) {
+            if (nextBounds[1] == 0.0 && nextBounds[4] == 1.0 && nextBounds[2] == 0.0 && nextBounds[5] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.X_AXIS : dx > 0 ? nextBounds[0] != 0.0 : nextBounds[3] != 1.0;
+            return true;
+        }
+        if (dz != 0) {
+            if (nextBounds[0] == 0.0 && nextBounds[3] == 1.0 && nextBounds[1] == 0.0 && nextBounds[4] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.Z_AXIS : dz > 0 ? nextBounds[2] != 0.0 : nextBounds[5] != 1.0;
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean canPassThroughWorkAround(BlockCache blockCache, int blockX, int blockY, int blockZ, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight) {
+        final Material mat = blockCache.getType(blockX, blockY, blockZ);
+        final long flags = BlockFlags.getBlockFlags(mat);
+        if ((flags & BlockFlags.F_SOLID) == 0) {
+            // Ignore non solid blocks anyway.
+            return true;
+        }
+        if ((flags & (BlockFlags.F_LIQUID | BlockFlags.F_IGN_PASSABLE)) != 0) {
+            return true;
+        }
+
+        if ((flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0) {
+            int entityBlockY = Location.locToBlock(eyeY - eyeHeight);
+            return direction.getY() > 0.76 && entityBlockY > blockY || direction.getY() < -0.76 && entityBlockY < blockY;
+        }
+        return false;
+    }
+
+    public static List<BlockCoord> getNeighborsInDirection(BlockCoord currentBlock, Vector direction, double eyeX, double eyeY, double eyeZ) {
+        List<BlockCoord> neighbors = new ArrayList<>();
+        int stepY = direction.getY() > 0 ? 1 : (direction.getY() < 0 ? -1 : 0);
+        int stepX = direction.getX() > 0 ? 1 : (direction.getX() < 0 ? -1 : 0);
+        int stepZ = direction.getZ() > 0 ? 1 : (direction.getZ() < 0 ? -1 : 0);
+        
+        final double dYM = TrigUtil.manhattan(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ(), eyeX, eyeY, eyeZ);
+        final double dZM = TrigUtil.manhattan(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ, eyeX, eyeY, eyeZ);
+        final double dXM = TrigUtil.manhattan(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ(), eyeX, eyeY, eyeZ);
+        
+        // Is this one correct?
+        if (dYM <= dXM && dYM <= dZM && Math.abs(direction.getY()) >= 0.5) {
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            return neighbors;
+        }
+
+        if (dXM < dZM) {
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+        } else {
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
+        }
+        return neighbors;
+    }
 }

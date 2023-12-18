@@ -116,6 +116,9 @@ public class FightListener extends CheckListener implements JoinLeaveListener{
     /** The speed check. */
     private final Speed speed = addCheck(new Speed());
 
+    /** The visible check. */
+    private final Visible visible = addCheck(new Visible());
+
     /** For temporary use: LocUtil.clone before passing deeply, call setWorld(null) after use. */
     private final Location useLoc1 = new Location(null, 0, 0, 0);
 
@@ -358,6 +361,10 @@ public class FightListener extends CheckListener implements JoinLeaveListener{
             }
         }
         
+        if (!cancelled && visible.isEnabled(player, pData)) {
+            if (visible.check(player, loc, damaged, damagedIsFake, damagedLoc, data, cc)) cancelled = true;
+        }
+
         // Checks that use the LocationTrace instance of the attacked entity/player.
         // TODO: To be replaced by Fight.HitBox
         if (!cancelled) {

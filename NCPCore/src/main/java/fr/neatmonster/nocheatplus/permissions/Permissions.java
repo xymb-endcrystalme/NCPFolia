@@ -125,7 +125,6 @@ public class Permissions {
 
     public static final RegisteredPermission  CHAT                         = add(CHECKS + ".chat");
     public static final RegisteredPermission  CHAT_CAPTCHA                 = add(CHAT + ".captcha");
-    public static final RegisteredPermission  CHAT_COLOR                   = add(CHAT + ".color");
     public static final RegisteredPermission  CHAT_COMMANDS                = add(CHAT + ".commands");
     public static final RegisteredPermission  CHAT_LOGINS                  = add(CHAT + ".logins");
     public static final RegisteredPermission  CHAT_RELOG                   = add(CHAT + ".relog");
@@ -147,6 +146,7 @@ public class Permissions {
     public static final RegisteredPermission  FIGHT_REACH                  = add(FIGHT + ".reach");
     public static final RegisteredPermission  FIGHT_SELFHIT                = add(FIGHT + ".selfhit");
     public static final RegisteredPermission  FIGHT_SPEED                  = add(FIGHT + ".speed");
+    public static final RegisteredPermission  FIGHT_VISIBLE                = add(FIGHT + ".visible");
 
     public static final RegisteredPermission  INVENTORY                    = add(CHECKS + ".inventory");
     public static final RegisteredPermission  INVENTORY_DROP               = add(INVENTORY + ".drop");

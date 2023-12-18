@@ -79,6 +79,7 @@ public enum CheckType {
     FIGHT_REACH(CheckTypeType.CHECK, FIGHT, Permissions.FIGHT_REACH),
     FIGHT_SELFHIT(CheckTypeType.CHECK, FIGHT, Permissions.FIGHT_SELFHIT),
     FIGHT_SPEED(CheckTypeType.CHECK, FIGHT, Permissions.FIGHT_SPEED),
+    FIGHT_VISIBLE(CheckTypeType.CHECK, FIGHT, Permissions.FIGHT_VISIBLE),
 
     INVENTORY(CheckTypeType.GROUP, CheckType.ALL, Permissions.INVENTORY),
     INVENTORY_FASTCLICK(CheckTypeType.CHECK, INVENTORY, Permissions.INVENTORY_FASTCLICK),

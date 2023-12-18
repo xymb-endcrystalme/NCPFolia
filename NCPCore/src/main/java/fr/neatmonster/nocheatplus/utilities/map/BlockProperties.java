@@ -4659,53 +4659,6 @@ public class BlockProperties {
     }
 
     /**
-     * Check passability with an arbitrary bounding box vs. a block.
-     *
-     * @param access
-     *            the access
-     * @param blockX
-     *            the block x
-     * @param blockY
-     *            the block y
-     * @param blockZ
-     *            the block z
-     * @param minX
-     *            the min x
-     * @param minY
-     *            the min y
-     * @param minZ
-     *            the min z
-     * @param maxX
-     *            the max x
-     * @param maxY
-     *            the max y
-     * @param maxZ
-     *            the max z
-     * @return true, if is passable box
-     */
-    public static final boolean isPassableInteractBox(final BlockCache access, 
-                                              final int blockX, final int blockY, final int blockZ,
-                                              final double minX, final double minY, final double minZ,
-                                              final double maxX, final double maxY, final double maxZ) {
-        // TODO: This mostly is copy and paste from isPassableBox but without workaround.
-        final IBlockCacheNode node = access.getOrCreateBlockCacheNode(blockX, blockY, blockZ, false);
-        final Material id = node.getType();
-        if (BlockProperties.isPassable(id)) {
-            return true;
-        }
-        double[] bounds = access.getBounds(blockX, blockY, blockZ);
-        if (bounds == null) {
-            return true;
-        }
-        // (Coordinates are already passed in an ordered form.)
-        if (!collidesBlock(access, minX, minY, minZ, maxX, maxY, maxZ, blockX, blockY, blockZ, node, null, BlockFlags.getBlockFlags(id) | BlockFlags.F_COLLIDE_EDGES)) {
-            return true;
-        }
-        // Does collide (most likely).
-        return false;
-    }
-
-    /**
      * Check if the bounding box collides with a block (passable + accounting
      * for workarounds).
      *
