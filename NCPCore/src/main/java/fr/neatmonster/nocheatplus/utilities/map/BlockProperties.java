@@ -2654,8 +2654,7 @@ public class BlockProperties {
             return true;
         }
         else {
-            // TODO: BlockFlags.F_GROUND ?
-            return (flags & BlockFlags.F_SOLID) == 0;
+            return (flags & BlockFlags.F_GROUND) == 0;
         }
     }
 

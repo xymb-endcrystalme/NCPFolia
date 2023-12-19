@@ -495,6 +495,15 @@ public class CollisionUtil {
         return !p.getNearbyEntities(0.15, 0.15, 0.15).isEmpty();
     }
 
+    /**
+     * Simple check to see if neighbor block is nearly same direction with block trying to interact.<br>
+     * For example if block interacting below or equal eye block, neighbor must be below or equal eye block.<br>
+     * 
+     * @param neighbor coord to check
+     * @param block coord that trying to interact
+     * @param eyeBlock
+     * @return true if correct.
+     */
     public static boolean correctDir(int neighbor, int block, int eyeBlock) {
         int d = eyeBlock - block;
         if (d > 0) {
@@ -507,6 +516,18 @@ public class CollisionUtil {
         return true;
     }
 
+    /**
+     * Simple check to see if neighnor block is nearly same direction with block trying to interact.<br>
+     * If the check don't satisfied but the coord to check is still within min and max, check still return true.<br>
+     * Design for blocks currently colliding with a bounding box<br>
+     * 
+     * @param neighbor coord to check
+     * @param block coord that trying to interact
+     * @param eyeBlock
+     * @param min Min value of one axis of bounding box
+     * @param max Max value of one axis of bounding box
+     * @return true if correct.
+     */
     public static boolean correctDir(int neighbor, int block, int eyeBlock, int min, int max) {
         if (neighbor >= min && neighbor <= max) return true;
         int d = eyeBlock - block;
@@ -520,18 +541,43 @@ public class CollisionUtil {
         return true;
     }
 
+    /**
+     * Test if from last block, the next block can pass through
+     * 
+     * @param rayTracing
+     * @param blockCache
+     * @param lastBlock The last block
+     * @param x The next block
+     * @param y
+     * @param z
+     * @param direction Approximate normalized direction to block
+     * @param eyeX Eye location
+     * @param eyeY
+     * @param eyeZ
+     * @param eyeHeight
+     * @param sCollidingBox Start of bounding box(min). Can be null
+     * @param eCollidingBox End of bounding box(max). Can be null
+     * @return true if can.
+     */
     public static boolean canPassThrough(InteractAxisTracing rayTracing, BlockCache blockCache, BlockCoord lastBlock, int x, int y, int z, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight, BlockCoord sCollidingBox, BlockCoord eCollidingBox) {
         double[] nextBounds = blockCache.getBounds(x, y, z);
         final Material mat = blockCache.getType(x, y, z);
         final long flags = BlockFlags.getBlockFlags(mat);
         //double[] lastBounds = blockCache.getBounds(lastBlock.getX(), lastBlock.getY(), lastBlock.getZ());
+        // Ignore initially colliding block(block inside bounding box)
         if (sCollidingBox != null && eCollidingBox != null
                 && isInsideAABBIncludeEdges(x,y,z, sCollidingBox.getX(), sCollidingBox.getY(), sCollidingBox.getZ(), eCollidingBox.getX(), eCollidingBox.getY(), eCollidingBox.getZ())) return true;
+        // NOTE: Simply check next block is passable but doesn't know the start point will only correct for some cases
+        // For the case oak_plank and next block is air, this one is correct
+        // For the case door and next block is air, this one is incorrect. Because air is null bounds
+        // Trap door is combined issue of slab and door
         if (nextBounds == null || canPassThroughWorkAround(blockCache, x, y, z, direction, eyeX, eyeY, eyeZ, eyeHeight)) return true;
         //if (lastBounds == null) return true;
+        // NOTE: Only one of them will be 1 at a time
         int dy = y - lastBlock.getY();
         int dx = x - lastBlock.getX();
         int dz = z - lastBlock.getZ();
+        // Move the end point to nearly end of block
         double stepX = dx * 0.99;
         double stepY = dy * 0.99;
         double stepZ = dz * 0.99;
@@ -545,24 +591,30 @@ public class CollisionUtil {
         boolean wallConnector = (flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0;
         boolean door = BlockProperties.isDoor(mat);
         if ((flags & BlockFlags.F_STAIRS) != 0) {
+            // Stair is being interacted from side!
             if (dy == 0) {
                 int eyeBlockY = Location.locToBlock(eyeY);
+                // nextBounds[4]: maxY of the slab of the stair
+                // nextBounds[1]: minY of the slab of the stair
                 if (eyeBlockY > y && nextBounds[4] == 1.0) return false;
                 if (eyeBlockY < y && nextBounds[1] == 0.0) return false;
             }
             if (dx != 0) {
-                // first bound is always a slab
+                // first bound is always a slab and will be handle below
                 for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
                     if (nextBounds[i*6-4] == 0.0 && nextBounds[i*6-1] == 1.0 && (dx < 0 ? nextBounds[i*6-3] == 1.0 : nextBounds[i*6-6] == 0.0)) return false;
                 }
             }
             if (dz != 0) {
-                // first bound is always a slab
+                // first bound is always a slab and will be handle below
                 for (int i = 2; i <= (int)nextBounds.length / 6; i++) {
                     if (nextBounds[i*6-6] == 0.0 && nextBounds[i*6-3] == 1.0 && (dz < 0 ? nextBounds[i*6-1] == 1.0 : nextBounds[i*6-4] == 0.0)) return false;
                 }
             }
         }
+        //System.out.println(dx + " " + dy + " " + dz + " " + rayTracing.getCollidingAxis());
+        // NOTE: Use rayTracing.getCollidingAxis() != Axis will false with slab(for example a block to interact surround with dirt and an upper slab above)
+        // Using dy > 0 ? nextBounds[1] != 0.0 : nextBounds[4] != 1.0 and similar will only a temporally workaround. Will think a way to set ray-cast end-point correctly 
         if (dy != 0) {
             if (nextBounds[0] == 0.0 && nextBounds[3] == 1.0 && nextBounds[2] == 0.0 && nextBounds[5] == 1.0) return wallConnector || door ? rayTracing.getCollidingAxis() != Axis.Y_AXIS : dy > 0 ? nextBounds[1] != 0.0 : nextBounds[4] != 1.0;
             return true;
@@ -581,21 +633,36 @@ public class CollisionUtil {
     private static boolean canPassThroughWorkAround(BlockCache blockCache, int blockX, int blockY, int blockZ, Vector direction, double eyeX, double eyeY, double eyeZ, double eyeHeight) {
         final Material mat = blockCache.getType(blockX, blockY, blockZ);
         final long flags = BlockFlags.getBlockFlags(mat);
-        if ((flags & BlockFlags.F_SOLID) == 0) {
+        // TODO: (flags & BlockFlags.F_SOLID) == 0?
+        //if ((flags & BlockFlags.F_SOLID) == 0) {
             // Ignore non solid blocks anyway.
-            return true;
-        }
+        //    return true;
+        //}
+        // TODO: Passable in movement doesn't mean passable in interaction
         if ((flags & (BlockFlags.F_LIQUID | BlockFlags.F_IGN_PASSABLE)) != 0) {
             return true;
         }
 
         if ((flags & (BlockFlags.F_THICK_FENCE | BlockFlags.F_THIN_FENCE)) != 0) {
+            // Restore the Y location of player trying to interact
             int entityBlockY = Location.locToBlock(eyeY - eyeHeight);
+            // if player is close to the block and look up or look down
             return direction.getY() > 0.76 && entityBlockY > blockY || direction.getY() < -0.76 && entityBlockY < blockY;
         }
         return false;
     }
 
+    /**
+     * Function to return the list of blocks that can be interact from.<br>
+     * As we can only see maximum 3 sides of a cube at a time
+     * 
+     * @param currentBlock Current block to move on
+     * @param direction
+     * @param eyeX Eye location just to prioritize with Axis will attempt to try first
+     * @param eyeY
+     * @param eyeZ
+     * @return List of blocks that can possibly interact from
+     */ 
     public static List<BlockCoord> getNeighborsInDirection(BlockCoord currentBlock, Vector direction, double eyeX, double eyeY, double eyeZ) {
         List<BlockCoord> neighbors = new ArrayList<>();
         int stepY = direction.getY() > 0 ? 1 : (direction.getY() < 0 ? -1 : 0);
