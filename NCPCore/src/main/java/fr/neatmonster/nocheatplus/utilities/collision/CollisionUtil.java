@@ -769,8 +769,14 @@ public class CollisionUtil {
         // Is this one correct?
         if (dYM <= dXM && dYM <= dZM && Math.abs(direction.getY()) >= 0.5) {
             if (allowY) neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY() + stepY, currentBlock.getZ()));
-            if (allowX) neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
-            if (allowZ) neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            // Do sort priority of XZ in case Y not possible
+            if (dXM < dZM) {
+                if (allowX) neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+                if (allowZ) neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+            } else {
+                if (allowZ) neighbors.add(new BlockCoord(currentBlock.getX(), currentBlock.getY(), currentBlock.getZ() + stepZ));
+                if (allowX) neighbors.add(new BlockCoord(currentBlock.getX() + stepX, currentBlock.getY(), currentBlock.getZ()));
+            }
             return neighbors;
         }
 
