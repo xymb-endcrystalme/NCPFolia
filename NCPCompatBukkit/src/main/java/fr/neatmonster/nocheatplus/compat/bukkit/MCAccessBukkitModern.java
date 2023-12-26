@@ -536,6 +536,8 @@ public class MCAccessBukkitModern extends MCAccessBukkit {
                     if (damageSource == null) {
                         // Fail, deal generic damage
                         BridgeHealth.damage(player, damage);
+                        // Disable class to prevent continuous damage
+                        reflectDamageSources = null;
                         return;
                     }
                 }

@@ -169,6 +169,18 @@ public class MaterialUtil {
     public static final Set<Material> COPPER_BLOCKS = Collections.unmodifiableSet(addBlocks(
             BridgeMaterial.getBySuffix("_copper", AlmostBoolean.YES), "copper_block", "waxed_copper_block"));
 
+    public static final Set<Material> ALL_REFINED_COPPER_BLOCKS = Collections.unmodifiableSet(
+            BridgeMaterial.getByContains(AlmostBoolean.YES, Arrays.asList("copper"), "ore", "raw"));
+
+    public static final Set<Material> COPPER_BULBS = Collections.unmodifiableSet(
+            BridgeMaterial.getBySuffix("copper_bulb", AlmostBoolean.YES));
+
+    public static final Set<Material> COPPER_GRATES = Collections.unmodifiableSet(
+            BridgeMaterial.getBySuffix("copper_grate", AlmostBoolean.YES));
+
+    public static final Set<Material> ALL_TUFF = Collections.unmodifiableSet(
+            BridgeMaterial.getByContains(AlmostBoolean.YES, Arrays.asList("tuff")));
+
     public static final Set<Material> ALL_CANDLES = Collections.unmodifiableSet(
             BridgeMaterial.getBySuffix("candle", AlmostBoolean.YES));
 
@@ -573,6 +585,8 @@ public class MaterialUtil {
             CONCRETE_POWDER_BLOCKS,
             CORAL_BLOCKS,
             COPPER_BLOCKS,
+            COPPER_GRATES,
+            COPPER_BULBS,
             GLASS_BLOCKS,
             GLAZED_TERRACOTTA_BLOCKS,
             INFESTED_BLOCKS,
