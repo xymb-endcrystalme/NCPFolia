@@ -38,6 +38,7 @@ import fr.neatmonster.nocheatplus.utilities.map.BlockCache.IBlockCacheNode;
 import fr.neatmonster.nocheatplus.utilities.map.BlockProperties;
 import fr.neatmonster.nocheatplus.utilities.map.BlockFlags;
 import fr.neatmonster.nocheatplus.utilities.map.MapUtil;
+import fr.neatmonster.nocheatplus.utilities.map.MaterialUtil;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -717,9 +718,7 @@ public class RichBoundsLocation implements IGetBukkitLocation, IGetBlockPosition
         if (onClimbable == null) {
             // Early return with flags set and no climbable nearby.
             final Material typeId = getTypeId();
-            if (blockFlags != null && (blockFlags & BlockFlags.F_CLIMBABLE) == 0
-                // Special case trap doors: // Better than increasing maxYOnGround.
-                && (blockFlags & BlockFlags.F_PASSABLE_X4) == 0) {
+            if (blockFlags != null && (blockFlags & BlockFlags.F_CLIMBABLE) == 0) {
                 onClimbable = false;
                 return false;
             }
@@ -729,7 +728,7 @@ public class RichBoundsLocation implements IGetBukkitLocation, IGetBlockPosition
             if (!onClimbable) {
                 // Special case trap door (simplified preconditions check).
                 // TODO: Distance to the wall?
-                if ((thisFlags & BlockFlags.F_PASSABLE_X4) != 0
+                if (MaterialUtil.ALL_TRAP_DOORS.contains(typeId)
                     && BlockProperties.isTrapDoorAboveLadderSpecialCase(blockCache, blockX, blockY, blockZ)) {
                     onClimbable = true;
                 }

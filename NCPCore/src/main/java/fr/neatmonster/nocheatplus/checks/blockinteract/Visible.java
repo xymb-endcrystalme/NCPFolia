@@ -31,9 +31,12 @@ import fr.neatmonster.nocheatplus.checks.CheckType;
 import fr.neatmonster.nocheatplus.checks.ViolationData;
 import fr.neatmonster.nocheatplus.checks.net.FlyingQueueHandle;
 import fr.neatmonster.nocheatplus.checks.net.FlyingQueueLookBlockChecker;
+import fr.neatmonster.nocheatplus.compat.blocks.changetracker.BlockChangeTracker.Direction;
 import fr.neatmonster.nocheatplus.players.IPlayerData;
 import fr.neatmonster.nocheatplus.utilities.StringUtil;
+import fr.neatmonster.nocheatplus.utilities.collision.Axis;
 import fr.neatmonster.nocheatplus.utilities.collision.CollisionUtil;
+import fr.neatmonster.nocheatplus.utilities.collision.CollisionUtil.RichAxisData;
 import fr.neatmonster.nocheatplus.utilities.collision.InteractAxisTracing;
 import fr.neatmonster.nocheatplus.utilities.ds.map.BlockCoord;
 import fr.neatmonster.nocheatplus.utilities.map.BlockCache;
@@ -140,22 +143,19 @@ public class Visible extends Check {
             //        blockX, blockY, blockZ, flyingHandle, face, tags, debug, player);
             rayTracing.set(blockX, blockY, blockZ, eyeX, eyeY, eyeZ);
             rayTracing.loop();
-            //System.out.println("origin: " + blockX + " " + blockY+ " " + blockZ + " " + Location.locToBlock(eyeX) + " " + Location.locToBlock(eyeY) + " " + Location.locToBlock(eyeZ));
             if (rayTracing.collides()) {
                 collides = true;
                 BlockCoord bc = new BlockCoord(blockX, blockY, blockZ);
                 Vector direction = new Vector(eyeX - blockX, eyeY - blockY, eyeZ - blockZ).normalize();
-                //System.out.println("dir:" + direction);
                 boolean canContinue;
+                boolean mightEdgeInteraction = true;
                 Set<BlockCoord> visited = new HashSet<BlockCoord>();
+                RichAxisData axisData = new RichAxisData(Axis.NONE, Direction.NONE);
+                if (Math.abs(face.getModX()) > 0) axisData.priority = Axis.X_AXIS; else if (Math.abs(face.getModY()) > 0) axisData.priority = Axis.Y_AXIS; else if (Math.abs(face.getModZ()) > 0) axisData.priority = Axis.Z_AXIS;
                 do {
-                    //System.out.println("dirl:" + direction);
                     canContinue = false;
-                for (BlockCoord neighbor : CollisionUtil.getNeighborsInDirection(bc, direction, eyeX, eyeY, eyeZ)) {
-                    //System.out.println(CollisionUtil.canPassThrough(rayTracing, blockCache, bc, neighbor.getX(), neighbor.getY(), neighbor.getZ(), direction, eyeX, eyeY, eyeZ, eyeHeight, null , null) + " " + CollisionUtil.correctDir(neighbor.getY(), blockY, Location.locToBlock(eyeY)) + " " + !visited.contains(neighbor)
-                            //+ " " + blockCache.getType(neighbor.getX(), neighbor.getY(), neighbor.getZ()) + " " + neighbor.getX() + " " + neighbor.getY() + " " + neighbor.getZ()
-                            //+ " " + blockCache.getType(bc.getX(), bc.getY(), bc.getZ()) + " " + bc.getX() + " " + bc.getY() + " " + bc.getZ());
-                    if (CollisionUtil.canPassThrough(rayTracing, blockCache, bc, neighbor.getX(), neighbor.getY(), neighbor.getZ(), direction, eyeX, eyeY, eyeZ, eyeHeight, null , null) && CollisionUtil.correctDir(neighbor.getY(), blockY, Location.locToBlock(eyeY)) && !visited.contains(neighbor)) {
+                for (BlockCoord neighbor : CollisionUtil.getNeighborsInDirection(bc, direction, eyeX, eyeY, eyeZ, axisData)) {
+                    if (CollisionUtil.canPassThrough(rayTracing, blockCache, bc, neighbor.getX(), neighbor.getY(), neighbor.getZ(), direction, eyeX, eyeY, eyeZ, eyeHeight, null, null, mightEdgeInteraction, axisData) && CollisionUtil.correctDir(neighbor.getY(), blockY, Location.locToBlock(eyeY)) && !visited.contains(neighbor)) {
                         if (TrigUtil.isSameBlock(neighbor.getX(), neighbor.getY(), neighbor.getZ(), eyeX, eyeY, eyeZ)) {
                             collides = false;
                             break;
@@ -165,14 +165,12 @@ public class Visible extends Check {
                         rayTracing.loop();
                         canContinue = true;
                         collides = rayTracing.collides();
-                        //if (!collides) break;
-                        //bc = new BlockCoord(rayTracing.getBlockX(), rayTracing.getBlockY(), rayTracing.getBlockZ());
-                        //direction = new Vector(eyeX - rayTracing.getBlockX(), eyeY - rayTracing.getBlockY(), eyeZ - rayTracing.getBlockZ()).normalize();
                         bc = new BlockCoord(neighbor.getX(), neighbor.getY(), neighbor.getZ());
                         direction = new Vector(eyeX - neighbor.getX(), eyeY - neighbor.getY(), eyeZ - neighbor.getZ()).normalize();
                         break;
                     }
                 }
+                mightEdgeInteraction = false;
                 } while (collides && canContinue);
                 if (collides) tags.add("raytracing");
             }
