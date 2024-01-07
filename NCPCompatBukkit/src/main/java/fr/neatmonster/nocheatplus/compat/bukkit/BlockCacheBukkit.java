@@ -64,7 +64,7 @@ public class BlockCacheBukkit extends BlockCache {
     public double[] fetchBounds(final int x, final int y, final int z){
         Material mat = getType(x, y, z);
         long flags = BlockFlags.getBlockFlags(mat);
-        if ((flags & (BlockFlags.F_IGN_PASSABLE)) != 0 && (flags & (BlockFlags.F_GROUND)) == 0) {
+        if (flags == BlockFlags.F_IGN_PASSABLE) {
             return null;
         }
         // minX, minY, minZ, maxX, maxY, maxZ
@@ -81,13 +81,13 @@ public class BlockCacheBukkit extends BlockCache {
             for (final Entity other : entity.getNearbyEntities(2.0, 2.0, 2.0)){
                 final EntityType type = other.getType();
                 if (!MaterialUtil.isBoat(type) && type != EntityType.SHULKER){ //  && !(other instanceof Minecart)) 
-                    continue; 
+                    continue;
                 }
                 final double locY = entity.getLocation(useLoc).getY();
                 useLoc.setWorld(null);
                 if (Math.abs(locY - minY) < 0.7){
                     // TODO: A "better" estimate is possible, though some more tolerance would be good. 
-                    return true; 
+                    return true;
                 }
                 else return false;
             }
