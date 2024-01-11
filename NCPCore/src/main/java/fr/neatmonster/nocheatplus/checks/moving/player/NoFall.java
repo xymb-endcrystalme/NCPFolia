@@ -14,7 +14,7 @@
  */
 package fr.neatmonster.nocheatplus.checks.moving.player;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import fr.neatmonster.nocheatplus.components.registry.feature.TickListener;
 import fr.neatmonster.nocheatplus.utilities.TickTask;
@@ -75,7 +75,6 @@ public class NoFall extends Check {
     /** For temporary use: LocUtil.clone before passing deeply, call setWorld(null) after use. */
     private final Location useLoc = new Location(null, 0, 0, 0);
     private final Location useLoc2 = new Location(null, 0, 0, 0);
-    private final Random random = new Random();
 
     private final static boolean ServerIsAtLeast1_12 = ServerVersion.compareMinecraftVersion("1.12") >= 0;
 
@@ -156,7 +155,7 @@ public class NoFall extends Check {
 
         // TODO: Need move data pTo, this location isn't updated
         Block block = player.getLocation(useLoc2).subtract(0.0, 1.0, 0.0).getBlock();
-        if (block.getType() == BridgeMaterial.FARMLAND && fallDist > 0.5 && random.nextFloat() < fallDist - 0.5) {
+        if (block.getType() == BridgeMaterial.FARMLAND && fallDist > 0.5 && ThreadLocalRandom.current().nextFloat() < fallDist - 0.5) {
             final BlockState newState = block.getState();
             newState.setType(Material.DIRT);
             //if (Bridge1_13.hasIsSwimming()) newState.setBlockData(Bukkit.createBlockData(newState.getType()));
@@ -167,7 +166,7 @@ public class NoFall extends Check {
             }
             return;
         }
-        if (Bridge1_13.hasIsSwimming() && block.getType() == Material.TURTLE_EGG && random.nextInt(3) == 0) {
+        if (Bridge1_13.hasIsSwimming() && block.getType() == Material.TURTLE_EGG && ThreadLocalRandom.current().nextInt(3) == 0) {
             final TurtleEgg egg = (TurtleEgg) block.getBlockData();
             final BlockState newState = block.getState();
             if (canChangeBlock(player, block, newState, true, false, false)) {

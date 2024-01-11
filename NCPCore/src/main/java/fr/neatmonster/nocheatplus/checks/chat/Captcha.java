@@ -14,7 +14,7 @@
  */
 package fr.neatmonster.nocheatplus.checks.chat;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
 
@@ -22,7 +22,6 @@ import fr.neatmonster.nocheatplus.checks.Check;
 import fr.neatmonster.nocheatplus.checks.CheckType;
 import fr.neatmonster.nocheatplus.players.DataManager;
 import fr.neatmonster.nocheatplus.players.IPlayerData;
-import fr.neatmonster.nocheatplus.utilities.CheckUtils;
 import fr.neatmonster.nocheatplus.utilities.ColorUtil;
 
 /**
@@ -32,16 +31,8 @@ import fr.neatmonster.nocheatplus.utilities.ColorUtil;
  */
 public class Captcha extends Check implements ICaptcha{
 
-    /** The random number generator. */
-    // MOVE TO generic registry (unique instance).
-    private final Random random;
-
     public Captcha() {
         super(CheckType.CHAT_CAPTCHA);
-        this.random = CheckUtils.getRandom();
-        if (this.random == null) {
-            throw new IllegalStateException("No Random instance registered.");
-        }
     }
 
     @Override
@@ -82,9 +73,10 @@ public class Captcha extends Check implements ICaptcha{
     public void generateCaptcha(ChatConfig cc, ChatData data, boolean reset) {
         if (reset) data.captchTries = 0;
         final char[] chars = new char[cc.captchaLength];
-        for (int i = 0; i < cc.captchaLength; i++)
-            chars[i] = cc.captchaCharacters.charAt(random
-                    .nextInt(cc.captchaCharacters.length()));
+        for (int i = 0; i < cc.captchaLength; i++) {
+            chars[i] = cc.captchaCharacters.charAt(
+                ThreadLocalRandom.current().nextInt(cc.captchaCharacters.length()));
+        }
         data.captchaGenerated = new String(chars);
     }
 
