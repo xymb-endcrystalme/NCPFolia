@@ -1860,7 +1860,8 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         boolean cancel = false;
         // Ender pearl into blocks.
         if (cause == TeleportCause.ENDER_PEARL) {
-            if (pData.getGenericInstance(CombinedConfig.class).enderPearlCheck && !BlockProperties.isPassable(to)) { // || !BlockProperties.isOnGroundOrResetCond(player, to, 1.0)) {
+            if (pData.getGenericInstance(CombinedConfig.class).enderPearlCheck && !BlockProperties.isPassable(to) && 
+                    blockChangeTracker.getBlockChangeEntry(null, TickTask.getTick(), to.getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), null) == null) { // || !BlockProperties.isOnGroundOrResetCond(player, to, 1.0)) {
                 // Not check on-ground: Check the second throw.
                 // TODO: Bounding box check or onGround as replacement?
                 cancel = true;
