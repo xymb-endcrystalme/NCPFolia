@@ -26,6 +26,7 @@ import fr.neatmonster.nocheatplus.checks.CheckType;
 import fr.neatmonster.nocheatplus.checks.ViolationData;
 import fr.neatmonster.nocheatplus.compat.AlmostBoolean;
 import fr.neatmonster.nocheatplus.compat.Bridge1_9;
+import fr.neatmonster.nocheatplus.compat.BridgePotionEffect;
 import fr.neatmonster.nocheatplus.permissions.Permissions;
 import fr.neatmonster.nocheatplus.players.IPlayerData;
 import fr.neatmonster.nocheatplus.utilities.PotionUtil;
@@ -122,7 +123,7 @@ public class FastBreak extends Check {
 
         // TODO: Rework to use (then hopefully completed) BlockBreakKey.
         if (pData.isDebugActive(type)) {
-            tailDebugStats(player, isInstaBreak, blockType, 
+            detailDebugStats(player, isInstaBreak, blockType, 
                     elapsedTime, expectedBreakingTime, data, pData);
         }
         else {
@@ -134,7 +135,7 @@ public class FastBreak extends Check {
         return cancel;
     }
 
-    private void tailDebugStats(final Player player, final AlmostBoolean isInstaBreak,
+    private void detailDebugStats(final Player player, final AlmostBoolean isInstaBreak,
             final Material blockType, final long elapsedTime, final long expectedBreakingTime,
             final BlockBreakData data, final IPlayerData pData) {
         if (pData.hasPermission(Permissions.ADMINISTRATION_DEBUG, player)) {
@@ -147,7 +148,7 @@ public class FastBreak extends Check {
             // Send info about current break:
             final ItemStack stack = Bridge1_9.getItemInMainHand(player);
             final boolean isValidTool = BlockProperties.isValidTool(blockType, stack);
-            final double haste = PotionUtil.getPotionEffectAmplifier(player, PotionEffectType.FAST_DIGGING);
+            final double haste = PotionUtil.getPotionEffectAmplifier(player, BridgePotionEffect.HASTE);
             String msg = (isInstaBreak.decideOptimistically() ? ("[Insta=" + isInstaBreak + "]") : "[Normal]") + "[" + blockType + "] "+ elapsedTime + "u / " + expectedBreakingTime +"r (" + (isValidTool?"tool":"no-tool") + ")" + (Double.isInfinite(haste) ? "" : " haste=" + ((int) haste + 1));
             player.sendMessage(msg);
             //          net.minecraft.server.Item mcItem = net.minecraft.server.Item.byId[stack.getTypeId()];

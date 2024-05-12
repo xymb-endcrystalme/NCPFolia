@@ -14,8 +14,14 @@
  */
 package fr.neatmonster.nocheatplus.utilities;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -37,6 +43,33 @@ import fr.neatmonster.nocheatplus.checks.inventory.InventoryData;
  *
  */
 public class InventoryUtil {
+
+    private static final Map<String, InventoryType> all = new HashMap<String, InventoryType>();
+    static {
+        for (InventoryType type : InventoryType.values()) {
+            String name = type.name().toLowerCase(Locale.ROOT);
+            all.put(name, type);
+        }
+    }
+
+    public static InventoryType get(String name) {
+        return all.get(name.toLowerCase());
+    }
+
+    public static final Set<InventoryType> CONTAINER_LIST = Collections.unmodifiableSet(
+            getAll("chest", "ender_chest", "dispenser", "dropper", "hopper", "barrel", "shulker_box", "chiseled_bookshelf")
+            );
+
+    public static Set<InventoryType> getAll(String... names) {
+        final LinkedHashSet<InventoryType> res = new LinkedHashSet<InventoryType>();
+        for (final String name : names) {
+            final InventoryType mat = get(name);
+            if (mat != null) {
+                res.add(mat);
+            }
+        }
+        return res;
+    }
 
     /**
      * Collect non-block items by suffix of their Material name (case insensitive).
@@ -270,14 +303,10 @@ public class InventoryUtil {
      * @return true, if is container
      */
     public static boolean isContainterInventory(final InventoryType type) {
-        return type != null && (type == InventoryType.CHEST
-                            || type == InventoryType.ENDER_CHEST
-                            || type == InventoryType.DISPENSER
-                            || type == InventoryType.DROPPER
-                            || type == InventoryType.HOPPER
-                            // For legacy servers... Ugly.
-                            || type.toString().equals("SHULKER_BOX")
-                            || type.toString().equals("BARREL"));
+        if (type == null) {
+            return false;
+        }
+        return CONTAINER_LIST.contains(type);
     }
 
     /**

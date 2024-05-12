@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import fr.neatmonster.nocheatplus.utilities.StringUtil;
 import fr.neatmonster.nocheatplus.utilities.map.BlockProperties;
 
 public final class BridgeEnchant {
@@ -32,17 +33,41 @@ public final class BridgeEnchant {
         }
     }
 
+    public static Enchantment getFirst(String... names) {
+        for (String name : names) {
+            final Enchantment type = parseEnchantment(name);
+            if (type != null) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    public static Enchantment getFirstNotNull(String... names) {
+        final Enchantment type = getFirst(names);
+        if (type == null) {
+            throw new NullPointerException("Enchant not present: " + StringUtil.join(names, ", "));
+        }
+        else {
+            return type;
+        }
+    }
+
     private final static Enchantment DEPTH_STRIDER = parseEnchantment("DEPTH_STRIDER");
 
     private final static Enchantment THORNS = parseEnchantment("THORNS");
     
     private final static Enchantment RIPTIDE = parseEnchantment("RIPTIDE");
     
-    private final static Enchantment FEATHER_FALLING = parseEnchantment("PROTECTION_FALL");
+    private final static Enchantment FEATHER_FALLING = getFirstNotNull("FEATHER_FALLING", "PROTECTION_FALL");
 
     private final static Enchantment SOUL_SPEED = parseEnchantment("SOUL_SPEED");
 
     private final static Enchantment SWIFT_SNEAK = parseEnchantment("SWIFT_SNEAK");
+    
+    public final static Enchantment EFFICIENCY = getFirstNotNull("EFFICIENCY", "DIG_SPEED");
+
+    public final static Enchantment AQUA_AFFINITY = getFirstNotNull("AQUA_AFFINITY", "WATER_WORKER");
 
     /**
      * Retrieve the maximum level for an enchantment, present in armor slots.
