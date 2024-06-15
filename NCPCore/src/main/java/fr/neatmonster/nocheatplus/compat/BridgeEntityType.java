@@ -72,7 +72,7 @@ public class BridgeEntityType {
     private static final EntityType MUSHROOM_COW = getFirst("mushroom_cow");
     private static final EntityType ENDER_CRYSTAL = getFirstNotNull("ender_crystal", "end_crystal");
     private static final EntityType LEASH_KNOT = getFirst("leash_hitch", "leash_knot");
-    private static final EntityType ZOMBIFIED_PIGLIN = getFirstNotNull("pig_zombie", "zombiefied_piglin");
+    private static final EntityType ZOMBIFIED_PIGLIN = getFirstNotNull("pig_zombie", "zombified_piglin");
     
     public static final Map<EntityType, Double> LEGACY_ENTITY_WIDTH = init();
     
