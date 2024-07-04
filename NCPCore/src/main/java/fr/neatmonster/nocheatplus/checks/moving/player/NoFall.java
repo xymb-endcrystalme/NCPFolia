@@ -113,7 +113,16 @@ public class NoFall extends Check {
                                 final IPlayerData pData) {
 
         // Damage to be dealt.
-        final float fallDist = (float) getApplicableFallHeight(player, y, previousSetBackY, data);
+        float fallDist = (float) getApplicableFallHeight(player, y, previousSetBackY, data);
+        // TODO: Might want to clean up NoFall to only track for ground state and override as mention above 
+        // (save performance, less code but packet dependent and precise ground state requirement)
+        // or still maintain it
+        // (lot of tracking stuffs for impulse, change blocks on land, damage recalculation -> degraded efficiency but packet independent
+        if (fallDist - Magic.FALL_DAMAGE_DIST > 0.0 && data.noFallCurrentLocOnWindChargeHit != null) {
+            final double lastImpluseY = data.noFallCurrentLocOnWindChargeHit.getY();
+            data.clearWindChargeImpulse();
+            fallDist = (float) (lastImpluseY < y ? 0.0 : lastImpluseY - y);
+        }
         double maxD = getDamage(fallDist);
         maxD = calcDamagewithfeatherfalling(player, calcReducedDamageByBlock(player, data, maxD), 
                                             mcAccess.getHandle().dealFallDamageFiresAnEvent().decide());
