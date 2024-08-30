@@ -216,7 +216,13 @@ public class NoSlow extends BaseAdapter {
         //    p.getInventory().setHeldItemSlot(data.olditemslot);
         //    data.changeslot = false;
         //}
-        if (e.getPreviousSlot() != e.getNewSlot()) data.isUsingItem = false;
+        if (e.getPreviousSlot() != e.getNewSlot()) {
+            if ((data.isUsingItem || p.isBlocking()) && data.playerMoves.getCurrentMove() != null) {
+                p.getInventory().setHeldItemSlot(e.getPreviousSlot());
+                data.invalidItemUse = true;
+            }
+            data.isUsingItem = false;
+        }
     }
 
     private static boolean hasArrow(final PlayerInventory i, final boolean fw) {
@@ -233,6 +239,7 @@ public class NoSlow extends BaseAdapter {
         final IPlayerData pData = DataManager.getPlayerData(p);
         final MovingData data = pData.getGenericInstance(MovingData.class);
         final PacketContainer packet = event.getPacket();
+
         final StructureModifier<Integer> ints = packet.getIntegers();
         // Legacy: pre 1.9
         if (ints.size() > 0 && !ServerIsAtLeast1_9) {

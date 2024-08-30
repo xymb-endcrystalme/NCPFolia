@@ -157,6 +157,7 @@ public class MovingData extends ACheckData implements IDataOnRemoveSubCheckData,
     public long releaseItemTime = 0;
     /** Detection flag */
     public boolean isHackingRI = false;
+    public boolean invalidItemUse = false;
     /** Keep track of hopping while using items */
     public int noSlowHop = 0;
 
