@@ -1197,6 +1197,15 @@ public class SurvivalFly extends Check {
             friction = 0.0;
         }
 
+        // InvalidUse packet
+        else if (data.invalidItemUse && (!checkPermissions || !pData.hasPermission(Permissions.MOVING_SURVIVALFLY_BLOCKING, player))) {
+            tags.add("invalidate_use");
+            data.invalidItemUse = false;
+            hAllowedDistance = 0.0;
+            useBaseModifiers = false;
+            friction = 0.0;
+        }
+
         // Collision tolerance for entities (1.9+)
         else if (ServerIsAtLeast1_9 && CollisionUtil.isCollidingWithEntities(player, true) 
                 && hAllowedDistance < 0.35 && data.liftOffEnvelope == LiftOffEnvelope.NORMAL) {
