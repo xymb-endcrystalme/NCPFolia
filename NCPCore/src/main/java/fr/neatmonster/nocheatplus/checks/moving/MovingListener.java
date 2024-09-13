@@ -2701,6 +2701,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
 
     @Override
     public void onTick(final int tick, final long timeLast) {
+        if (true) return;
         hoverTicks.clear(); // Folia compatibility, can't do stuff async
         playersEnforce.clear(); // Folia
 
