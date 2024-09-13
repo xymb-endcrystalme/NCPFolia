@@ -1222,6 +1222,10 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         }
         // A check has requested a new to-location.
         else {
+            // Make NCP give up if setBack location is too far away.
+            if (Math.abs(player.getLocation().getX() - newTo.getX()) > 128 || Math.abs(player.getLocation().getZ() - newTo.getZ()) > 128) {
+                newTo = player.getLocation();
+            }
 
             // 1: Setback override, adjust newTo.
             if (data.hasTeleported()) {
@@ -2697,6 +2701,8 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
 
     @Override
     public void onTick(final int tick, final long timeLast) {
+        hoverTicks.clear(); // Folia compatibility, can't do stuff async
+        playersEnforce.clear(); // Folia
 
         // TODO: Change to per world checking (as long as configs are per world).
         // Legacy: enforcing location consistency.
