@@ -229,7 +229,7 @@ public class LocationTrace {
         this.maxSize = maxSize;
     }
 
-    public final void addEntry(final long time, final RichBoundsLocation loc) {
+    public final synchronized void addEntry(final long time, final RichBoundsLocation loc) {
         addEntry(time, loc.getX(), loc.getY(), loc.getZ(), loc.getBoxMarginHorizontal(), loc.getBoxMarginVertical());
     }
 
@@ -244,7 +244,7 @@ public class LocationTrace {
      * @param boxMarginVertical
      *            Margin from the foot position to the top of the box.
      */
-    public final void addEntry(final long time, final double x, final double y, final double z,
+    public final synchronized void addEntry(final long time, final double x, final double y, final double z,
             final double boxMarginHorizontal, final double boxMarginVertical) {
         if (size > 0) {
             // TODO: Might update box to bigger or remove margins ?
@@ -273,7 +273,7 @@ public class LocationTrace {
      * 
      * @param entry
      */
-    private void setFirst(final TraceEntry entry) {
+    private synchronized void setFirst(final TraceEntry entry) {
         entry.previous = null;
         if (this.firstEntry != null) {
             entry.next = this.firstEntry;
@@ -296,7 +296,7 @@ public class LocationTrace {
      * @param time
      *            The time now.
      */
-    public void checkMaxAge(final long time) {
+    public synchronized void checkMaxAge(final long time) {
         // TODO: Visibility to private? [can set to null or reset on logout]
         // Ensure we have entries to expire at all.
         if (time - lastEntry.time < maxAge || size == 1) {
@@ -311,7 +311,7 @@ public class LocationTrace {
     }
 
     /** Reset/invalidate all elements. */
-    public void reset() {
+    public synchronized void reset() {
         returnToPool(firstEntry);
         firstEntry = lastEntry = null;
         size = 0; // Redundant.
@@ -323,7 +323,7 @@ public class LocationTrace {
      * 
      * @param entry
      */
-    private void returnToPool(TraceEntry entry) {
+    private synchronized void returnToPool(TraceEntry entry) {
         if (entry == null) {
             return;
         }
@@ -394,7 +394,7 @@ public class LocationTrace {
      * Iterate from oldest to latest.
      * @return
      */
-    public TraceIterator oldestIterator() {
+    public synchronized TraceIterator oldestIterator() {
         return new TraceIterator(lastEntry, false);
     }
 
@@ -403,7 +403,7 @@ public class LocationTrace {
      * @param time Absolute time value for oldest accepted entries.
      * @return TraceIterator containing entries that have not been created before the given time, iterating ascending with time.
      */
-    public TraceIterator maxAgeIterator(final long time) {
+    public synchronized TraceIterator maxAgeIterator(final long time) {
         TraceEntry start = firstEntry;
         while (start != null) {
             if (start.next != null && start.next.time >= time) {
@@ -423,7 +423,7 @@ public class LocationTrace {
      * @param traceMaxSize
      * @param time The time now.
      */
-    public void adjustSettings(final long maxAge, final int maxSize, final long time) {
+    public synchronized void adjustSettings(final long maxAge, final int maxSize, final long time) {
         // Time run backwards check (full reset).
         if (size > 0 && time < firstEntry.time) {
             reset();
