@@ -50,6 +50,8 @@ public class BlockCacheBukkit extends BlockCache {
     @Override
     public Material fetchTypeId(final int x, final int y, final int z) {
         // TODO: consider setting type id and data at once.
+        if (!world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16)))
+            return Material.AIR;
         return world.getBlockAt(x, y, z).getType();
     }
 
