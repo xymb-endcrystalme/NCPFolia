@@ -2509,7 +2509,7 @@ public class MovingListener extends CheckListener implements TickListener, IRemo
         final int tick = TickTask.getTick();
         final String tag = isRespawn ? "Respawn" : "Join";
         // Check loaded chunks.
-        if (cc.loadChunksOnJoin) {
+        if (cc.loadChunksOnJoin && false) {
             // (Don't use past-move heuristic for skipping here.)
             final int loaded = MapUtil.ensureChunksLoaded(loc.getWorld(), loc.getX(), loc.getZ(), Magic.CHUNK_LOAD_MARGIN_MIN);
             if (loaded > 0 && debug) {
