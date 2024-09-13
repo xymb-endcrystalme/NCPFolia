@@ -3544,6 +3544,7 @@ public class BlockProperties {
         for (int x = iMinX; x <= iMaxX; x++) {
             for (int z = iMinZ; z <= iMaxZ; z++) {
                 for (int y = iMaxY; y >= iMinY; y--) {
+                    if (!world.isChunkLoaded(Math.floorDiv(x, 16), Math.floorDiv(z, 16))) return false;
                     BlockData bd = world.getBlockAt(x,y,z).getBlockData();
                     if (bd instanceof Waterlogged && ((Waterlogged)bd).isWaterlogged()) {
                          // Clearly outside of bounds. (liquid)
