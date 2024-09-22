@@ -709,8 +709,8 @@ public class VehicleChecks extends CheckListener {
                 if (debug) {
                     debug(player, "Attempt to set the player back directly.");
                 }
-                passengerUtil.teleportWithPassengers(vehicle, player, 
-                        newTo.getLocation(vehicle.getWorld()), debug, pData);
+//                passengerUtil.teleportWithPassengers(vehicle, player, 
+//                        newTo.getLocation(vehicle.getWorld()), debug, pData);
             }
 
         }
